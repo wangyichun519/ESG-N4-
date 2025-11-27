@@ -1,0 +1,375 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>護理專案 N4 寫作極致工具 (ESG 特別版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+        .sidebar-item { transition: all 0.2s; }
+        .sidebar-item:hover { background-color: #f1f5f9; }
+        .sidebar-item.active { background-color: #e0f2fe; border-right: 4px solid #0ea5e9; color: #0284c7; }
+        .input-focus:focus { ring: 2px; ring-color: #3b82f6; outline: none; border-color: #3b82f6; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="flex h-screen overflow-hidden">
+    
+    <aside class="w-80 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10">
+        <div class="p-6 border-b border-gray-100">
+            <h1 class="text-2xl font-bold text-slate-800"><i class="fa-solid fa-user-nurse text-blue-500 mr-2"></i>N4 護理架構師</h1>
+            <p class="text-xs text-slate-500 mt-2">ESG 零約束專案專用版</p>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+            <div v-for="dim in topicData.dimensions" :key="dim.id">
+                <div @click="toggleDim(dim.id)" class="cursor-pointer flex justify-between items-center text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide select-none hover:text-blue-600 transition">
+                    {{ dim.name }}
+                    <i :class="expandedDims.includes(dim.id) ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-right'" class="text-xs"></i>
+                </div>
+                
+                <div v-show="expandedDims.includes(dim.id)" class="space-y-1 ml-2 border-l-2 border-gray-100 pl-2">
+                    <div v-for="formula in dim.formulas" :key="formula.id" 
+                         @click="selectFormula(formula)"
+                         :class="['sidebar-item p-3 rounded-md cursor-pointer text-sm flex items-center', currentFormula?.id === formula.id ? 'active' : 'text-slate-600']">
+                        <i class="fa-solid fa-pen-nib mr-2 text-xs opacity-70"></i>
+                        {{ formula.name }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-100 bg-slate-50">
+            <div class="text-xs text-slate-400 text-center">
+                Powered by "主題架構師Coding"
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+        <header class="bg-white h-16 border-b border-gray-200 flex items-center justify-between px-8 shadow-sm shrink-0">
+            <h2 class="text-lg font-semibold text-slate-800">
+                <span v-if="currentFormula" class="text-blue-600">{{ currentFormula.name }}</span>
+                <span v-else class="text-gray-400">請從左側選擇一個寫作公式</span>
+            </h2>
+            <div class="flex space-x-3">
+                <button @click="resetForm" class="text-sm text-slate-500 hover:text-red-500 transition px-3 py-1 rounded border border-transparent hover:border-red-100">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> 重置
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+            <div v-if="currentFormula" class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                <div class="space-y-6">
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex items-center mb-4">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
+                                <i class="fa-solid fa-sliders"></i>
+                            </div>
+                            <h3 class="font-bold text-slate-800">1. 參數設定</h3>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div v-for="variable in currentFormula.variables" :key="variable.name">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">{{ variable.label }}</label>
+                                <div class="relative">
+                                    <select v-model="formValues[variable.name]" 
+                                            class="w-full pl-3 pr-10 py-2 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none appearance-none text-slate-700">
+                                        <option value="" disabled selected>請選擇或是自行輸入...</option>
+                                        <option v-for="opt in variable.options" :value="opt">{{ opt }}</option>
+                                    </select>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                                    </div>
+                                </div>
+                                <input type="text" v-model="formValues[variable.name]" placeholder="或在此手動輸入..." class="mt-2 w-full text-xs text-gray-500 border-b border-gray-200 focus:border-blue-400 outline-none bg-transparent placeholder-gray-300">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                         <div class="flex items-center mb-4 justify-between">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 mr-3">
+                                    <i class="fa-solid fa-file-medical"></i>
+                                </div>
+                                <h3 class="font-bold text-slate-800">2. 專案情境補充</h3>
+                            </div>
+                            <label class="cursor-pointer text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition">
+                                <i class="fa-solid fa-upload mr-1"></i> 讀取文字檔
+                                <input type="file" @change="handleFileUpload" class="hidden" accept=".txt,.md,.csv">
+                            </label>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-2">請貼上您的專案背景資料、數據或觀察紀錄（或上傳 txt 檔）：</p>
+                        <textarea v-model="userContext" rows="6" 
+                                  class="w-full p-3 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition outline-none resize-none text-slate-700"
+                                  placeholder="例如：本單位為精神護理之家，住民多為思覺失調症。目前主要問題是夜間遊走頻繁..."></textarea>
+                    </div>
+
+                </div>
+
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-blue-100 h-full flex flex-col relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-emerald-400"></div>
+                        
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-3">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                </div>
+                                <h3 class="font-bold text-slate-800">3. AI 提示詞生成結果</h3>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button @click="copyPrompt" class="text-xs bg-slate-100 hover:bg-blue-50 text-blue-600 font-medium px-3 py-1.5 rounded-lg transition border border-slate-200 hover:border-blue-200">
+                                    <i class="fa-regular fa-copy mr-1"></i> 複製
+                                </button>
+                                <button @click="downloadPrompt" class="text-xs bg-slate-100 hover:bg-emerald-50 text-emerald-600 font-medium px-3 py-1.5 rounded-lg transition border border-slate-200 hover:border-emerald-200">
+                                    <i class="fa-solid fa-download mr-1"></i> 下載
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 bg-slate-800 rounded-lg p-4 overflow-auto font-mono text-sm text-gray-300 relative group">
+                            <textarea readonly class="w-full h-full bg-transparent outline-none resize-none text-gray-200" :value="generatedPrompt"></textarea>
+                        </div>
+                        
+                        <p class="text-xs text-gray-400 mt-3 text-center">
+                            <i class="fa-solid fa-circle-info mr-1"></i> 將此內容貼入 ChatGPT、Claude 或 Gemini 即可生成高品質專案內容。
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div v-else class="h-full flex flex-col items-center justify-center text-center opacity-60 mt-10">
+                <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                    <i class="fa-solid fa-arrow-left text-4xl text-gray-300"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-700 mb-2">準備開始您的 N4 專案</h3>
+                <p class="text-slate-500 max-w-md">請從左側選單選擇一個寫作構面（如：GAP 分析、環境策略），本工具已預載 ESG 零約束專案的相關參數。</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+const topicData = {
+  "topic": "N4 護理專案寫作助手：ESG 零約束模式",
+  "dimensions": [
+    {
+      "id": "dim_analysis",
+      "name": "一、現況與問題分析 (Analysis)",
+      "formulas": [
+        {
+          "id": "formula_gap",
+          "name": "差距分析 (GAP Analysis)",
+          "template": "你是一位專業的護理專案顧問。請根據以下參數與情境，運用差距分析 (Gap Analysis) 技巧，為我撰寫一段 N4 報告的「現況分析」章節。重點在於對比基線數據與目標，並強調問題的嚴重性。\n\n### 參數設定\n- 目前基線數據：{baseline_data}\n- 目標設定值：{target_goal}\n- 主要問題點 (GAP)：{gap_points}\n- 影響層面：{impact_scope}\n\n### 專案背景與補充情境\n{user_context}\n\n### 輸出要求\n1. 請使用學術且專業的語氣。\n2. 請具體呈現數據的落差。\n3. 分析導致差距的結構性原因。",
+          "variables": [
+            { "name": "baseline_data", "label": "目前基線數據", "options": ["身體約束率 23.70% (高於同儕)", "10個月平均約束率 23.90%", "跌倒發生率 0.45%", "護理人員滿意度 60%"] },
+            { "name": "target_goal", "label": "目標設定值", "options": ["降至 10% 以下 (改善幅度57%)", "降至 0% (零發生)", "提升至 90% 以上", "建立標準化作業流程"] },
+            { "name": "gap_points", "label": "主要問題點 (GAP)", "options": ["環境刺激過多且無情緒轉換區", "人員缺乏去升溫技巧", "缺乏標準化 SOP 與監測機制", "跨團隊溝通不足"] },
+            { "name": "impact_scope", "label": "影響層面", "options": ["住民安全與尊嚴受損", "護理人員工作壓力增加，採防禦性照護", "機構治理品質下降", "家屬信任度降低"] }
+          ]
+        },
+        {
+          "id": "formula_root_cause",
+          "name": "ESG 問題導因歸納",
+          "template": "你是一位 ESG 永續治理專家。請協助我將護理專案的問題點，依照 ESG (環境、社會、治理) 架構進行歸納撰寫。這將用於「問題確理」章節。\n\n### 參數設定\n- 環境面 (E) 問題：{env_problem}\n- 社會面 (S) 問題：{social_problem}\n- 治理面 (G) 問題：{gov_problem}\n- 結論方向：{conclusion_direction}\n\n### 專案背景與補充情境\n{user_context}\n\n### 輸出要求\n1. 請分點列出 E、S、G 三方面的具體問題。\n2. 強調若不改善將導致無法永續發展。",
+          "variables": [
+            { "name": "env_problem", "label": "環境面 (E) 問題", "options": ["感官刺激過強 (噪音/光線)", "動線擁擠易生衝突", "缺乏隱私與情緒轉換空間", "硬體設備老舊"] },
+            { "name": "social_problem", "label": "社會面 (S) 問題", "options": ["非藥物介入活動不足", "家屬對非約束認知不足", "照護人力與去升溫技巧不足", "醫病溝通不良"] },
+            { "name": "gov_problem", "label": "治理面 (G) 問題", "options": ["SOP 分散且缺乏一致性", "缺乏資訊儀表板監測", "跨團隊會議未制度化", "缺乏稽核回饋機制"] },
+            { "name": "conclusion_direction", "label": "結論方向", "options": ["需導入 ESG 永續治理模式", "需進行跨構面整合改善", "需建立以人為本的照護文化"]}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dim_strategy",
+      "name": "二、改善策略擬定 (Strategies)",
+      "formulas": [
+        {
+          "id": "formula_strategy_e",
+          "name": "環境構面 (E) 策略寫作",
+          "template": "你是一位療癒環境設計師與護理師。請針對「環境構面 (Environmental)」，撰寫具體的改善方案章節。\n\n### 參數設定\n- 空間改造策略：{space_tactic}\n- 感官介入措施：{sensory_tactic}\n- 動線優化方式：{flow_tactic}\n\n### 專案背景與補充情境\n{user_context}\n\n### 輸出要求\n1. 請描述具體的執行做法。\n2. 說明這些環境改變如何影響住民的心理與行為 (例如降低焦慮)。",
+          "variables": [
+            { "name": "space_tactic", "label": "空間改造策略", "options": ["設置情緒轉換區 (柔光/低刺激)", "建立多感官治療室 (Snoezelen)", "增設安靜座位區", "調整病房色彩配置"] },
+            { "name": "sensory_tactic", "label": "感官介入措施", "options": ["導入 Snoezelen Lite 多感官牆", "夜間低亮度路徑燈與降噪措施", "提供觸覺減壓物 (抱枕/紋理墊)", "播放治療性輕音樂"] },
+            { "name": "flow_tactic", "label": "動線優化方式", "options": ["座位斜向排列避免視線衝突", "移除走道障礙物", "分流用餐與活動動線", "標示清晰的指引路徑"] }
+          ]
+        },
+        {
+          "id": "formula_strategy_s",
+          "name": "社會構面 (S) 策略寫作",
+          "template": "請針對「社會構面 (Social)」，撰寫人員培訓與活動介入策略。\n\n### 參數設定\n- 教育訓練重點：{training_focus}\n- 活動介入設計：{activity_design}\n- 家屬溝通策略：{family_comm}\n\n### 專案背景與補充情境\n{user_context}\n\n### 輸出要求\n1. 強調軟實力與人文關懷。\n2. 具體說明教育訓練的內容與頻率。",
+          "variables": [
+            { "name": "training_focus", "label": "教育訓練重點", "options": ["去升溫技巧 (De-escalation) 實務訓練", "同理心與溝通技巧", "身體約束替代方案演練", "危機預警徵象辨識"] },
+            { "name": "activity_design", "label": "活動介入設計", "options": ["五感刺激體驗 (咖啡香/音樂)", "認知刺激桌遊團體", "園藝與懷舊治療", "規律化晨間體操"] },
+            { "name": "family_comm", "label": "家屬溝通策略", "options": ["定期家屬座談會與衛教", "推動共同決策 (SDM)", "製作非約束照護衛教單張", "建立家屬支持團體"] }
+          ]
+        },
+        {
+          "id": "formula_strategy_g",
+          "name": "治理構面 (G) 策略寫作",
+          "template": "請針對「治理構面 (Governance)」，撰寫流程管理與監測機制。\n\n### 參數設定\n- 標準化流程 (SOP)：{sop_action}\n- 團隊運作機制：{team_mechanism}\n- 資訊監測工具：{it_tool}\n\n### 專案背景與補充情境\n{user_context}\n\n### 輸出要求\n1. 強調制度化與可持續性。\n2. 說明如何確保各班別的一致性。",
+          "variables": [
+            { "name": "sop_action", "label": "標準化流程 (SOP)", "options": ["修訂約束啟動與解除規範", "建立每 2 小時重新評估機制", "制定替代策略清單", "統一交班查核表"] },
+            { "name": "team_mechanism", "label": "團隊運作機制", "options": ["跨團隊零約束會議制度化", "每週個案行為分析會議", "建立異常事件檢討小組", "醫師護理師聯合查房"] },
+            { "name": "it_tool", "label": "資訊監測工具", "options": ["建立約束率監測儀表板 (Dashboard)", "異常趨勢自動警示系統", "線上回饋與通報系統", "數位化護理紀錄"] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dim_evaluation",
+      "name": "三、結果評值與討論 (Results)",
+      "formulas": [
+        {
+          "id": "formula_outcome",
+          "name": "成效數據描述",
+          "template": "請根據執行後的數據，為我撰寫「結果」章節。需強調數據的具體改善幅度與趨勢的穩定性。\n\n### 參數設定\n- 主要指標結果：{primary_result}\n- 趨勢描述：{trend_desc}\n- 附加效益：{side_benefit}\n\n### 專案背景與補充情境\n{user_context}\n\n### 輸出要求\n1. 請以客觀數據為主，質性描述為輔。\n2. 對比介入前與介入後的差異。",
+          "variables": [
+            { "name": "primary_result", "label": "主要指標結果", "options": ["約束率由 23.7% 降至 10% 以下", "改善幅度達 57% 以上", "達成零約束目標", "異常事件下降 50%"] },
+            { "name": "trend_desc", "label": "趨勢描述", "options": ["呈現穩定下降且無反彈", "隨介入強度增加而顯著改善", "初期波動後趨於穩定", "長期維持在目標值以下"] },
+            { "name": "side_benefit", "label": "附加效益", "options": ["住民情緒穩定度與生活品質提升", "照護人員自信心與滿意度增加", "家屬支持度與滿意度提升", "單位文化轉向尊嚴照護"] }
+          ]
+        },
+        {
+          "id": "formula_discussion",
+          "name": "討論與文獻佐證",
+          "template": "請針對專案成效進行深度討論，並引用文獻支持改善策略的有效性。\n\n### 參數設定\n- 策略有效性論述：{strategy_validity}\n- 文獻支持點：{lit_support}\n- 推廣價值：{future_value}\n\n### 專案背景與補充情境\n{user_context}\n\n### 輸出要求\n1. 將本專案結果與國內外文獻進行對話。\n2. 強調本專案的創新性或應用價值。",
+          "variables": [
+            { "name": "strategy_validity", "label": "策略有效性論述", "options": ["ESG 多模式介入優於單一措施", "環境優化顯著降低防禦性照護", "治理透明化確保了成效永續", "去升溫技巧有效阻斷衝突升級"] },
+            { "name": "lit_support", "label": "文獻支持點", "options": ["符合 WHO 零強制與尊嚴照護趨勢", "Snoezelen 具實證可降焦慮", "De-escalation 為衝突管理黃金標準", "流程標準化有助品質維持"] },
+            { "name": "future_value", "label": "推廣價值", "options": ["建立可複製的永續零約束模式", "低成本高成效具推廣潛力", "適用於精神科與失智照護機構", "提供政策制定參考"] }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+const { createApp, ref, computed } = Vue;
+
+createApp({
+    setup() {
+        const expandedDims = ref(['dim_analysis']); // Default expand first
+        const currentFormula = ref(null);
+        const formValues = ref({});
+        const userContext = ref("");
+
+        // Toggle Sidebar Dimension
+        const toggleDim = (id) => {
+            if (expandedDims.value.includes(id)) {
+                expandedDims.value = expandedDims.value.filter(d => d !== id);
+            } else {
+                expandedDims.value.push(id);
+            }
+        };
+
+        // Select Formula
+        const selectFormula = (formula) => {
+            currentFormula.value = formula;
+            // Reset form values but keep context
+            formValues.value = {};
+            // Initialize empty values for new variables
+            formula.variables.forEach(v => {
+                formValues.value[v.name] = "";
+            });
+        };
+
+        // Handle File Upload
+        const handleFileUpload = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                userContext.value += "\n\n[已匯入檔案內容]:\n" + text;
+            };
+            reader.readAsText(file);
+        };
+
+        // Reset Form
+        const resetForm = () => {
+            formValues.value = {};
+            userContext.value = "";
+            // Re-init current variables
+            if (currentFormula.value) {
+                currentFormula.value.variables.forEach(v => {
+                    formValues.value[v.name] = "";
+                });
+            }
+        };
+
+        // Generate Prompt
+        const generatedPrompt = computed(() => {
+            if (!currentFormula.value) return "";
+
+            let prompt = currentFormula.value.template;
+
+            // Replace Variables
+            currentFormula.value.variables.forEach(v => {
+                const val = formValues.value[v.name] || `[請補充: ${v.label}]`;
+                prompt = prompt.replace(`{${v.name}}`, val);
+            });
+
+            // Replace Context
+            const contextVal = userContext.value.trim() !== "" ? userContext.value : "（無特定背景資訊，請依通用標準撰寫）";
+            prompt = prompt.replace(`{user_context}`, contextVal);
+
+            return prompt;
+        });
+
+        // Copy to Clipboard
+        const copyPrompt = () => {
+            navigator.clipboard.writeText(generatedPrompt.value).then(() => {
+                alert("提示詞已複製到剪貼簿！");
+            });
+        };
+
+        // Download as TXT
+        const downloadPrompt = () => {
+            const element = document.createElement('a');
+            const file = new Blob([generatedPrompt.value], {type: 'text/plain'});
+            element.href = URL.createObjectURL(file);
+            element.download = `N4_ESG_Prompt_${new Date().toISOString().slice(0,10)}.txt`;
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        };
+
+        return {
+            topicData,
+            expandedDims,
+            currentFormula,
+            formValues,
+            userContext,
+            toggleDim,
+            selectFormula,
+            handleFileUpload,
+            generatedPrompt,
+            copyPrompt,
+            downloadPrompt,
+            resetForm
+        };
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
