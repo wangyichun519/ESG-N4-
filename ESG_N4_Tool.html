@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -14,7 +14,6 @@
         .sidebar-item { transition: all 0.2s; }
         .sidebar-item:hover { background-color: #f1f5f9; }
         .sidebar-item.active { background-color: #e0f2fe; border-right: 4px solid #0ea5e9; color: #0284c7; }
-        .input-focus:focus { ring: 2px; ring-color: #3b82f6; outline: none; border-color: #3b82f6; }
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -26,7 +25,7 @@
 
 <div id="app" class="flex h-screen overflow-hidden">
     
-    <aside class="w-80 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10">
+    <aside class="w-80 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10 hidden md:flex">
         <div class="p-6 border-b border-gray-100">
             <h1 class="text-2xl font-bold text-slate-800"><i class="fa-solid fa-user-nurse text-blue-500 mr-2"></i>N4 護理架構師</h1>
             <p class="text-xs text-slate-500 mt-2">ESG 零約束專案專用版</p>
@@ -58,11 +57,16 @@
     </aside>
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
-        <header class="bg-white h-16 border-b border-gray-200 flex items-center justify-between px-8 shadow-sm shrink-0">
-            <h2 class="text-lg font-semibold text-slate-800">
-                <span v-if="currentFormula" class="text-blue-600">{{ currentFormula.name }}</span>
-                <span v-else class="text-gray-400">請從左側選擇一個寫作公式</span>
-            </h2>
+        <header class="bg-white h-16 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 shadow-sm shrink-0">
+            <div class="flex items-center">
+                <button class="md:hidden mr-4 text-slate-600" @click="mobileMenuOpen = !mobileMenuOpen">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <h2 class="text-lg font-semibold text-slate-800 truncate">
+                    <span v-if="currentFormula" class="text-blue-600">{{ currentFormula.name }}</span>
+                    <span v-else class="text-gray-400">請從左側選擇一個寫作公式</span>
+                </h2>
+            </div>
             <div class="flex space-x-3">
                 <button @click="resetForm" class="text-sm text-slate-500 hover:text-red-500 transition px-3 py-1 rounded border border-transparent hover:border-red-100">
                     <i class="fa-solid fa-rotate-right mr-1"></i> 重置
@@ -70,8 +74,22 @@
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-8 bg-slate-50/50">
-            <div v-if="currentFormula" class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div v-if="mobileMenuOpen" class="absolute inset-0 z-50 bg-slate-800/50 md:hidden" @click="mobileMenuOpen = false">
+            <div class="bg-white w-64 h-full p-4 overflow-y-auto" @click.stop>
+                <div class="mb-6 font-bold text-lg text-slate-800">選單</div>
+                <div v-for="dim in topicData.dimensions" :key="dim.id" class="mb-4">
+                     <div class="font-bold text-sm text-slate-700 mb-2">{{ dim.name }}</div>
+                     <div v-for="formula in dim.formulas" :key="formula.id" 
+                         @click="selectFormula(formula); mobileMenuOpen = false"
+                         class="p-2 text-sm text-slate-600 border-l-2 border-transparent hover:border-blue-500 pl-2 cursor-pointer">
+                        {{ formula.name }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50">
+            <div v-if="currentFormula" class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
                 
                 <div class="space-y-6">
                     
@@ -114,7 +132,7 @@
                                 <input type="file" @change="handleFileUpload" class="hidden" accept=".txt,.md,.csv">
                             </label>
                         </div>
-                        <p class="text-xs text-slate-500 mb-2">請貼上您的專案背景資料、數據或觀察紀錄（或上傳 txt 檔）：</p>
+                        <p class="text-xs text-slate-500 mb-2">請貼上您的專案背景資料、數據或觀察紀錄：</p>
                         <textarea v-model="userContext" rows="6" 
                                   class="w-full p-3 text-sm bg-slate-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition outline-none resize-none text-slate-700"
                                   placeholder="例如：本單位為精神護理之家，住民多為思覺失調症。目前主要問題是夜間遊走頻繁..."></textarea>
@@ -143,7 +161,7 @@
                             </div>
                         </div>
 
-                        <div class="flex-1 bg-slate-800 rounded-lg p-4 overflow-auto font-mono text-sm text-gray-300 relative group">
+                        <div class="flex-1 bg-slate-800 rounded-lg p-4 overflow-auto font-mono text-sm text-gray-300 relative group min-h-[300px]">
                             <textarea readonly class="w-full h-full bg-transparent outline-none resize-none text-gray-200" :value="generatedPrompt"></textarea>
                         </div>
                         
@@ -155,12 +173,13 @@
 
             </div>
 
-            <div v-else class="h-full flex flex-col items-center justify-center text-center opacity-60 mt-10">
+            <div v-else class="h-full flex flex-col items-center justify-center text-center opacity-60 mt-10 px-4">
                 <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                    <i class="fa-solid fa-arrow-left text-4xl text-gray-300"></i>
+                    <i class="fa-solid fa-arrow-left text-4xl text-gray-300 hidden md:block"></i>
+                    <i class="fa-solid fa-bars text-4xl text-gray-300 md:hidden"></i>
                 </div>
                 <h3 class="text-xl font-bold text-slate-700 mb-2">準備開始您的 N4 專案</h3>
-                <p class="text-slate-500 max-w-md">請從左側選單選擇一個寫作構面（如：GAP 分析、環境策略），本工具已預載 ESG 零約束專案的相關參數。</p>
+                <p class="text-slate-500 max-w-md">請從左側選單（手機版請點擊左上角選單）選擇一個寫作構面，本工具已預載 ESG 零約束專案的相關參數。</p>
             </div>
         </div>
     </main>
@@ -271,6 +290,7 @@ createApp({
         const currentFormula = ref(null);
         const formValues = ref({});
         const userContext = ref("");
+        const mobileMenuOpen = ref(false);
 
         // Toggle Sidebar Dimension
         const toggleDim = (id) => {
@@ -360,6 +380,7 @@ createApp({
             currentFormula,
             formValues,
             userContext,
+            mobileMenuOpen,
             toggleDim,
             selectFormula,
             handleFileUpload,
